@@ -12,6 +12,7 @@ t/fork.t		Test of a forking server
 t/forkm.t		Test of a forking server with multiple clients
 t/ithread.t		Test of a multithreaded server (ithreads)
 t/ithreadm.t		Test of a multithreaded server with multiple clients
+t/listen.t		Test the --listen option
 t/loop.t		Test the loop-timeout option
 t/loop-child.t		Same with loop-child set
 t/server		Script used by the server tests
