@@ -15,6 +15,7 @@ t/ithread.t		Test of a multithreaded server (ithreads)
 t/ithread-detach.t	Test that ChildFunc detaches threads
 t/ithreadm.t		Test of a multithreaded server with multiple clients
 t/listen.t		Test the --listen option
+t/logfile.t		Test logfile string handling in Net::Daemon::Log
 t/loop.t		Test the loop-timeout option
 t/loop-child.t		Same with loop-child set
 t/server		Script used by the server tests
