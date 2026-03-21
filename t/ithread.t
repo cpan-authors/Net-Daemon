@@ -18,6 +18,12 @@ if ( !$Config{useithreads} ) {
     print "1..0 # SKIP This test requires a perl with working ithreads.\n";
     exit 0;
 }
+
+if ( $^O eq "MSWin32" ) {
+    print "1..0 # SKIP This test is failing on windows due to Win32-Process ithreads socket handling.\n";
+    exit 0;
+}
+
 require threads;
 
 my ( $handle, $port ) = Net::Daemon::Test->Child( $numTests, $^X, 't/server', '--timeout', 20, '--mode=ithreads' );
