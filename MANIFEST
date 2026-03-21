@@ -7,6 +7,7 @@ lib/Net/Daemon.pm	Net::Daemon module
 lib/Net/Daemon/Log.pm	Support class for logging
 lib/Net/Daemon/Test.pm	Support class for writing tests
 t/base.t		Base test
+t/clone.t		Test of post_clone() hook for per-connection init
 t/config.t		Test of config file handling and access control
 t/fork.t		Test of a forking server
 t/forkm.t		Test of a forking server with multiple clients
