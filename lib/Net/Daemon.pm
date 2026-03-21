@@ -489,8 +489,9 @@ sub ChildFunc {
             my $method = shift;
             $self->$method(@_);
         };
-        threads->new( $startfunc, $self, $method, @args )
+        my $thr = threads->new( $startfunc, $self, $method, @args )
           or die "Failed to create a new thread: $!";
+        $thr->detach();
     }
     else {
         my $pid = fork();
@@ -710,7 +711,7 @@ sub Bind ($) {
                 my $sth = $self->Clone($client);
                 $self->Debug("Child clone: $sth\n");
                 $sth->ChildFunc('HandleChild') if $sth;
-                if ( $self->{'mode'} eq 'fork' ) {
+                if ( $self->{'mode'} eq 'fork' || $self->{'mode'} eq 'ithreads' ) {
                     $self->ServClose($client);
                 }
             }
