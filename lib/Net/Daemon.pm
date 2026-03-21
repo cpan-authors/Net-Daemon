@@ -711,7 +711,7 @@ sub Bind ($) {
                 my $sth = $self->Clone($client);
                 $self->Debug("Child clone: $sth\n");
                 $sth->ChildFunc('HandleChild') if $sth;
-                if ( $self->{'mode'} eq 'fork' || $self->{'mode'} eq 'ithreads' ) {
+                if ( $self->{'mode'} eq 'fork' ) {
                     $self->ServClose($client);
                 }
             }
