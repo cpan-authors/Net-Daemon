@@ -17,3 +17,4 @@ t/loop-child.t		Same with loop-child set
 t/server		Script used by the server tests
 t/single.t		Test of a single-mode server
 t/unix.t		Test for Unix sockets
+t/unix_clients.t	Test for Unix sockets with clients defined
