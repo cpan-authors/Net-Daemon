@@ -12,6 +12,7 @@ t/config.t		Test of config file handling and access control
 t/fork.t		Test of a forking server
 t/forkm.t		Test of a forking server with multiple clients
 t/ithread.t		Test of a multithreaded server (ithreads)
+t/ithread-detach.t	Test that ChildFunc detaches threads
 t/ithreadm.t		Test of a multithreaded server with multiple clients
 t/listen.t		Test the --listen option
 t/loop.t		Test the loop-timeout option
