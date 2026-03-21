@@ -535,7 +535,13 @@ sub HandleChild {
 sub SigChildHandler {
     my $self = shift;
     my $ref  = shift;
-    return 'IGNORE' if $self->{'mode'} eq 'fork' || $self->{'childs'};
+    if ( $self->{'mode'} eq 'fork' || $self->{'childs'} ) {
+        return sub {
+            while ( ( my $pid = waitpid( -1, POSIX::WNOHANG() ) ) > 0 ) {
+                $$ref = $pid if $ref;
+            }
+        };
+    }
     return undef;    # Don't care for childs.
 }
 
