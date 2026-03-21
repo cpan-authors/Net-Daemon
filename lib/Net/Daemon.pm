@@ -661,6 +661,7 @@ sub Bind ($) {
 
     my $time = $self->{'loop-timeout'} ? ( time() + $self->{'loop-timeout'} ) : 0;
 
+    my @_ithreads_clients;    # prevent GC from closing sockets used by threads
     my $client;
     while ( !$self->Done() ) {
         undef $child_pid;
@@ -713,6 +714,12 @@ sub Bind ($) {
                 $sth->ChildFunc('HandleChild') if $sth;
                 if ( $self->{'mode'} eq 'fork' ) {
                     $self->ServClose($client);
+                }
+                elsif ( $self->{'mode'} eq 'ithreads' ) {
+                    # On Windows, ithreads may share the underlying socket
+                    # handle with the parent. Keep a reference to prevent
+                    # DESTROY from closing it while the thread is using it.
+                    push @_ithreads_clients, $client;
                 }
             }
         }
