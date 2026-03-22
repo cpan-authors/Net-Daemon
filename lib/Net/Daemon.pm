@@ -327,7 +327,14 @@ sub Clone ($$) {
     $self->{'socket'} = $client;
     $self->{'parent'} = $proto;
     bless( $self, ref($proto) );
+    $self->post_clone();
     $self;
+}
+
+sub post_clone ($) {
+    # Override in subclasses to initialize cloned (per-connection) instances.
+    # Called by Clone() after the new object is created. The parent server
+    # object is available as $self->{'parent'}.
 }
 
 ############################################################################
@@ -798,6 +805,13 @@ new object. This new object will be passed to the methods that finally
 do the true work of communicating with the client. Communication occurs
 over the socket B<$socket>, B<Clone>'s argument.
 
+Note that B<Clone> does I<not> call B<new>; it creates a shallow copy
+of the server object. If your subclass needs to initialize per-connection
+state, override the B<post_clone> method rather than checking for
+C<$self-E<gt>{'parent'}> inside B<new>. B<post_clone> is called by
+B<Clone> after the new object is created and blessed. The default
+implementation is a no-op.
+
 Possible object attributes and the corresponding command line
 arguments are:
 
@@ -1199,19 +1213,19 @@ given base.
   sub new ($$;$) {
       my($class, $attr, $args) = @_;
       my($self) = $class->SUPER::new($attr, $args);
-      if ($self->{'parent'}) {
-	  # Called via Clone()
-	  $self->{'base'} = $self->{'parent'}->{'base'};
-      } else {
-	  # Initial call
-	  if ($self->{'options'}  &&  $self->{'options'}->{'base'}) {
-	      $self->{'base'} = $self->{'options'}->{'base'}
-          }
+      if ($self->{'options'}  &&  $self->{'options'}->{'base'}) {
+	  $self->{'base'} = $self->{'options'}->{'base'}
       }
       if (!$self->{'base'}) {
 	  $self->{'base'} = 'dec';
       }
       $self;
+  }
+
+  # Initialize per-connection state after Clone()
+  sub post_clone ($) {
+      my($self) = @_;
+      $self->{'base'} = $self->{'parent'}->{'base'};
   }
 
   sub Run ($) {
