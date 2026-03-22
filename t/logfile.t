@@ -2,8 +2,8 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use Test::More tests => 6;
-use File::Temp qw(tempdir);
+use Test::More tests => 7;
+use File::Temp qw(tempdir tempfile);
 use File::Spec;
 
 use_ok('Net::Daemon::Log');
@@ -38,9 +38,22 @@ use_ok('Net::Daemon::Log');
 # Test 2: logfile set to "STDERR" (case-insensitive) should log to stderr
 {
     my $logger = TestLogger->new(logfile => 'STDERR');
-    # OpenLog should convert "STDERR" to 1 (the stderr sentinel)
     my $result = $logger->OpenLog();
     is($result, 1, 'logfile "STDERR" is converted to stderr sentinel');
+
+    # Verify that Log() actually writes to stderr when sentinel is set
+    my ($tmp_fh, $tmp_file) = tempfile(CLEANUP => 1);
+    close $tmp_fh;
+    open my $save_stderr, '>&', \*STDERR or die "Cannot dup STDERR: $!";
+    open STDERR, '>', $tmp_file or die "Cannot redirect STDERR: $!";
+    $logger->Log('notice', 'hello stderr test');
+    open STDERR, '>&', $save_stderr or die "Cannot restore STDERR: $!";
+    close $save_stderr;
+
+    open my $rfh, '<', $tmp_file or die "Cannot read $tmp_file: $!";
+    my $content = do { local $/; <$rfh> };
+    close $rfh;
+    like($content, qr/hello stderr test/, 'STDERR logfile actually writes to stderr');
 }
 
 {
