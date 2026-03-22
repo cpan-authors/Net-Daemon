@@ -500,8 +500,9 @@ sub ChildFunc {
             my $method = shift;
             $self->$method(@_);
         };
-        threads->new( $startfunc, $self, $method, @args )
+        my $thr = threads->new( $startfunc, $self, $method, @args )
           or die "Failed to create a new thread: $!";
+        $thr->detach();
     }
     else {
         my $pid = fork();
