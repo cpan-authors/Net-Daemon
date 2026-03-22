@@ -32,7 +32,7 @@ use Net::Daemon::Log ();
 use POSIX            ();
 use File::Spec       ();
 
-our $VERSION = '0.48';
+our $VERSION = '0.51';
 our @ISA = qw(Net::Daemon::Log);
 
 our $RegExpLock = 1;
