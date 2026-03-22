@@ -358,7 +358,7 @@ sub Accept ($) {
         if ( $self->{'proto'} eq 'unix' ) {
             ( $name, $aliases, $addrtype, $length, @addrs ) = (
                 'localhost', '', Socket::AF_INET(),
-                length( Socket::IN_ADDR_ANY() ),
+                length( Socket::INADDR_ANY ),
                 Socket::inet_aton('127.0.0.1')
             );
         }
