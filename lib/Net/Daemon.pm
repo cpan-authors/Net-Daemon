@@ -98,6 +98,10 @@ sub Options ($) {
             'template'    => 'help',
             'description' => '--help                  ' . 'Print this help message'
         },
+        'listen' => {
+            'template'    => 'listen=i',
+            'description' => '--listen <num>          ' . 'Size of the listen queue (backlog); defaults to 10'
+        },
         'localaddr' => {
             'template'    => 'localaddr=s',
             'description' => '--localaddr <ip>        ' . 'IP number to bind to; defaults to INADDR_ANY'
