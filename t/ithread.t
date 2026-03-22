@@ -20,7 +20,7 @@ if ( !$Config{useithreads} ) {
 }
 
 if ( $^O eq "MSWin32" ) {
-    print "1..0 # SKIP This test is failing on windows due to Win32-Process ithreads socket handling.\n";
+    print "1..0 # SKIP This test is failing on windows due to Win32-Process ithreads socket handling. See https://github.com/cpan-authors/Net-Daemon/issues/30\n";
     exit 0;
 }
 
