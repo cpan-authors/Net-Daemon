@@ -392,9 +392,9 @@ sub Accept ($) {
             }
             my $masks = ref( $client->{'mask'} ) ? $client->{'mask'} : [ $client->{'mask'} ];
 
-            #
-            # Regular expressions aren't thread safe, as of
-            # 5.00502 :-(
+            # Lock regex operations for thread safety. Modern Perl
+            # (5.10+) has thread-safe regex, but subclasses may rely
+            # on $RegExpLock for their own synchronization.
             #
             my $lock;
             $lock = lock($RegExpLock)
@@ -784,8 +784,8 @@ Net::Daemon - Perl extension for portable daemons
 =head1 DESCRIPTION
 
 Net::Daemon is an abstract base class for implementing portable server
-applications in a very simple way. The module is designed for Perl 5.005
-and threads, but can work with fork() and Perl 5.004.
+applications in a very simple way. The module is designed for Perl 5.006
+and ithreads, but can work with fork() as well.
 
 The Net::Daemon class offers methods for the most common tasks a daemon
 needs: Starting up, logging, accepting clients, authorization, restricting
@@ -936,11 +936,10 @@ I<loop-timeout>.
 The Net::Daemon server can run in three different modes, depending on
 the environment.
 
-If you are running Perl 5.005 and did compile it for threads, then
-the server will create a new thread for each connection. The thread
-will execute the server's Run() method and then terminate. This mode
-is the default, you can force it with "--mode=ithreads" or
-"--mode=threads".
+If you are running Perl 5.10 or later and it was compiled with ithreads
+support, then the server will create a new thread for each connection.
+The thread will execute the server's Run() method and then terminate.
+This mode is the default, you can force it with "--mode=ithreads".
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
