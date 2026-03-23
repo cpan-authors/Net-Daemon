@@ -41,7 +41,7 @@ sub Loop {
     if ( $self->{'loop-timeout'} ) {
         my $count = $self->{'loop-count'} || 0;
         if ( ( $self->{'loop-count'} = ++$count ) == 10 ) {
-            $self->Done();
+            $self->Done(1);
             open( COUNT, ">ndtest.cnt" );
             print COUNT "10\n";
             close(COUNT);
