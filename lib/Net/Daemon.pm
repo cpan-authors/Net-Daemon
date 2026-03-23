@@ -597,9 +597,9 @@ sub Bind ($) {
         $self->Debug("Writing PID to $pidfile");
         my $fh = Symbol::gensym();
         $self->Fatal("Cannot write to $pidfile: $!")
-          unless ( open( OUT, ">$pidfile" )
-            and ( print OUT "$$\n" )
-            and close(OUT) );
+          unless ( open( $fh, '>', $pidfile )
+            and ( print $fh "$$\n" )
+            and close($fh) );
     }
 
     if ( my $dir = $self->{'chroot'} ) {
@@ -610,7 +610,6 @@ sub Bind ($) {
     }
     if ( my $group = $self->{'group'} ) {
         $self->Debug("Changing GID to $group");
-        my $gid;
         if ( $group !~ /^\d+$/ ) {
             if ( defined( my $gid = getgrnam($group) ) ) {
                 $group = $gid;
@@ -623,7 +622,6 @@ sub Bind ($) {
     }
     if ( my $user = $self->{'user'} ) {
         $self->Debug("Changing UID to $user");
-        my $uid;
         if ( $user !~ /^\d+$/ ) {
             if ( defined( my $uid = getpwnam($user) ) ) {
                 $user = $uid;
