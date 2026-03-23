@@ -18,11 +18,6 @@ if ( !$Config{useithreads} ) {
     exit 0;
 }
 
-if ( $^O eq "MSWin32" ) {
-   print  "1..0 # SKIP This test is failing on windows I think due to Win32-Process but it needs help right now.\n";
-   exit 0;
-}
-
 require threads;
 
 my ( $handle, $port );

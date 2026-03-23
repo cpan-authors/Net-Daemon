@@ -500,8 +500,19 @@ sub ChildFunc {
             my $method = shift;
             $self->$method(@_);
         };
+
+        # Remove the parent server reference before cloning into the
+        # thread.  The parent object holds the listening socket; when
+        # Perl's ithreads machinery dup()s that handle into the child
+        # thread, closing the dup at thread exit can — on Windows —
+        # invalidate the original listening socket in the parent,
+        # causing subsequent accept() calls to fail.  The handler
+        # thread never needs the parent reference, so excising it is
+        # safe on all platforms and avoids unnecessary handle cloning.
+        my $parent = delete $self->{'parent'};
         my $thr = threads->new( $startfunc, $self, $method, @args )
           or die "Failed to create a new thread: $!";
+        $self->{'parent'} = $parent if $parent;
         $thr->detach();
     }
     else {
