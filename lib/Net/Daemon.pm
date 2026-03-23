@@ -44,7 +44,7 @@ my $use_ithreads = ( $^V ge v5.10.0 && $Config{'useithreads'} && !$INC{'forks.pm
 if ($use_ithreads) {
     eval { require threads; };
     eval { require threads::shared; };
-    threads::shared::share( $RegExpLock ) if $forks::threads; # Assuming this isn't threads masquerading as forks.
+    threads::shared::share( $RegExpLock );
 }
 
 our $exit;
@@ -398,7 +398,7 @@ sub Accept ($) {
             #
             my $lock;
             $lock = lock($RegExpLock)
-              if ( $self->{'mode'} eq 'threads' );
+              if ( $self->{'mode'} eq 'ithreads' );
             foreach my $mask (@$masks) {
                 foreach my $alias (@patterns) {
                     if ( $alias =~ /$mask/ ) {
