@@ -55,8 +55,9 @@ printf( "%s 5\n", $fh->close() ? "ok" : "not ok" );
 $ok = 0;
 for ( my $i = 0; $i < 30; $i++ ) {
     my $num;
-    if (    open( CNT, "<ndtest.cnt" )
-        and defined( $num = <CNT> )
+    my $cnt_fh;
+    if (    open( $cnt_fh, '<', 'ndtest.cnt' )
+        and defined( $num = <$cnt_fh> )
         and $num eq "10\n" ) {
         $ok = 1;
         last;

@@ -42,9 +42,9 @@ sub Loop {
         my $count = $self->{'loop-count'} || 0;
         if ( ( $self->{'loop-count'} = ++$count ) == 10 ) {
             $self->Done();
-            open( COUNT, ">ndtest.cnt" );
-            print COUNT "10\n";
-            close(COUNT);
+            open( my $cnt_fh, '>', 'ndtest.cnt' );
+            print $cnt_fh "10\n";
+            close($cnt_fh);
         }
     }
 }
