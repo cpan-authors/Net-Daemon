@@ -333,9 +333,11 @@ sub Child ($$@) {
     my $fh = Symbol::gensym();
     my $port;
     if (   !open( $fh, '<', 'ndtest.prt' )
-        || !defined( $port = <$fh> ) ) {
+        || !defined( $port = <$fh> )
+        || !close($fh) ) {
         die "Error while reading 'ndtest.prt': $!";
     }
+    chomp $port;
     ( $handle, $port );
 }
 

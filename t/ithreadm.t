@@ -7,23 +7,21 @@ use IO::Socket        ();
 use Config            ();
 use Net::Daemon::Test ();
 use Fcntl             ();
+use Test::More;
 
-use Config;
+$| = 1;
 
-$|  = 1;
-$^W = 1;
-
-if ( !$Config{useithreads} ) {
-    print "1..0 # SKIP This test requires a perl with working ithreads.\n";
-    exit 0;
+if ( !$Config::Config{useithreads} ) {
+    plan skip_all => 'This test requires a perl with working ithreads.';
 }
 
 if ( $^O eq "MSWin32" ) {
-   print  "1..0 # SKIP This test is failing on windows I think due to Win32-Process but it needs help right now.\n";
-   exit 0;
+    plan skip_all => 'This test is failing on windows due to Win32-Process but needs help right now.';
 }
 
 require threads;
+
+plan tests => 10;
 
 my ( $handle, $port );
 if (@ARGV) {
@@ -31,7 +29,7 @@ if (@ARGV) {
 }
 else {
     ( $handle, $port ) = Net::Daemon::Test->Child(
-        10,                $^X,              '-Iblib/lib', '-Iblib/arch', 't/server',
+        undef,             $^X,              '-Iblib/lib', '-Iblib/arch', 't/server',
         '--mode=ithreads', 'logfile=stderr', 'debug'
     );
 }
@@ -80,8 +78,6 @@ sub MyChild {
 
 my @threads;
 for ( my $i = 0; $i < 10; $i++ ) {
-
-    #print "Spawning child $i.\n";
     my $tid = threads->new( \&MyChild, $i );
     if ( !$tid ) {
         print STDERR "Failed to create new thread: $!\n";
@@ -91,19 +87,13 @@ for ( my $i = 0; $i < 10; $i++ ) {
 }
 eval { alarm 1; alarm 0 };
 alarm 120 unless $@;
-for ( my $i = 1; $i <= 10; $i++ ) {
+for ( my $i = 0; $i < 10; $i++ ) {
     my $tid = shift @threads;
-    if ( $tid->join() ) {
-        print "ok $i\n";
-    }
-    else {
-        print "not ok $i\n";
-    }
+    ok( $tid->join(), "client thread $i completed 1000 round-trips" );
 }
 
 END {
     if ($handle) {
-        print "Terminating server.\n";
         $handle->Terminate();
         undef $handle;
     }
