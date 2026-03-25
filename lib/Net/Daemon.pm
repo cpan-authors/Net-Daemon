@@ -498,6 +498,19 @@ sub ChildFunc {
         my $startfunc = sub {
             my $self   = shift;
             my $method = shift;
+
+            # Close the cloned listening socket inherited from the
+            # parent interpreter.  Perl ithreads clone the entire
+            # interpreter state, so every open handle — including the
+            # server's listening socket — gets dup'd into the thread.
+            # On Windows, closing these duplicated Winsock handles at
+            # thread exit can invalidate the original handle in the
+            # parent, breaking subsequent accept() calls.  Closing
+            # the clone immediately at thread start avoids this.
+            if ( my $parent = delete $self->{'parent'} ) {
+                $parent->{'socket'}->close() if $parent->{'socket'};
+            }
+
             $self->$method(@_);
         };
         my $thr = threads->new( $startfunc, $self, $method, @args )
@@ -728,7 +741,7 @@ sub Bind ($) {
                 my $sth = $self->Clone($client);
                 $self->Debug("Child clone: $sth\n");
                 $sth->ChildFunc('HandleChild') if $sth;
-                if ( $self->{'mode'} eq 'fork' ) {
+                if ( $self->{'mode'} ne 'single' ) {
                     $self->ServClose($client);
                 }
             }
