@@ -15,10 +15,6 @@ if ( !$Config::Config{useithreads} ) {
     plan skip_all => 'This test requires a perl with working ithreads.';
 }
 
-if ( $^O eq "MSWin32" ) {
-    plan skip_all => 'This test is failing on windows due to Win32-Process but needs help right now.';
-}
-
 require threads;
 
 plan tests => 10;

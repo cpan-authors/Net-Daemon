@@ -12,10 +12,6 @@ if ( !$Config{useithreads} ) {
     plan skip_all => 'This test requires a perl with working ithreads.';
 }
 
-if ( $^O eq "MSWin32" ) {
-    plan skip_all => 'This test is failing on windows due to Win32-Process ithreads socket handling. See https://github.com/cpan-authors/Net-Daemon/issues/30';
-}
-
 require threads;
 plan tests => 5;
 
