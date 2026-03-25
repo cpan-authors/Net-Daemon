@@ -1204,7 +1204,7 @@ given base.
 
   package Calculator;
 
-  our $VERSION = '0.01';
+  our $VERSION = '0.51';
   our @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
 
   sub Version ($) { 'Calculator Example Server, 0.01'; }
