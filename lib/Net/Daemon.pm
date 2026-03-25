@@ -349,7 +349,7 @@ sub post_clone ($) {
 #
 #   Inputs:  $self - Server instance
 #
-#   Result:  TRUE, if the client has successfuly authorized, FALSE
+#   Result:  TRUE, if the client has successfully authorized, FALSE
 #            otherwise.
 #
 ############################################################################
