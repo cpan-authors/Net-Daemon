@@ -19,11 +19,6 @@ if ( !$Config{useithreads} ) {
     exit 0;
 }
 
-if ( $^O eq "MSWin32" ) {
-    print "1..0 # SKIP This test is failing on windows due to Win32-Process ithreads socket handling. See https://github.com/cpan-authors/Net-Daemon/issues/30\n";
-    exit 0;
-}
-
 require threads;
 
 my ( $handle, $port ) = Net::Daemon::Test->Child( $numTests, $^X, 't/server', '--timeout', 20, '--mode=ithreads' );
