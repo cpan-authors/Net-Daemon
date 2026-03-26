@@ -197,7 +197,7 @@ sub Bind ($) {
     # Create the "ndtest.prt" file so that the child knows to what
     # port it may connect.
     my $fh = Symbol::gensym();
-    if (   !open( $fh, ">ndtest.prt" )
+    if (   !open( $fh, '>', 'ndtest.prt' )
         || !( print $fh $port )
         || !close($fh) ) {
         die "Error while creating 'ndtest.prt': $!";
@@ -332,7 +332,7 @@ sub Child ($$@) {
     sleep 1;
     my $fh = Symbol::gensym();
     my $port;
-    if (   !open( $fh, "<ndtest.prt" )
+    if (   !open( $fh, '<', 'ndtest.prt' )
         || !defined( $port = <$fh> ) ) {
         die "Error while reading 'ndtest.prt': $!";
     }

@@ -112,8 +112,8 @@ sub ShowResults {
     for ( my $i = 1; $i <= 10; $i++ ) {
         $results[ $i - 1 ] = "not ok $i\n";
     }
-    if ( open( LOG, "<log" ) ) {
-        while ( defined( my $line = <LOG> ) ) {
+    if ( open( my $log_fh, '<', 'log' ) ) {
+        while ( defined( my $line = <$log_fh> ) ) {
             if ( $line =~ /(\d+)/ ) {
                 $results[ $1 - 1 ] = $line;
             }
@@ -169,7 +169,7 @@ for ( my $i = 0; $i < 10; $i++ ) {
             %childs = ();
             my $result = MyChild($i);
             my $fh     = Symbol::gensym();
-            if (   !open( $fh, ">>log" )
+            if (   !open( $fh, '>>', 'log' )
                 || !flock( $fh, 2 )
                 || !seek( $fh, 0, 2 )
                 || !( print $fh ( ( $result ? "ok " : "not ok " ), ( $i + 1 ), "\n" ) )
