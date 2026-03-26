@@ -213,9 +213,13 @@ sub ReadConfigFile {
     if ( !-f $file ) {
         $self->Fatal("No such config file: $file");
     }
+    $@ = '';
     my $copts = do File::Spec->rel2abs($file);
     if ($@) {
         $self->Fatal("Error while processing config file $file: $@");
+    }
+    if ( !defined($copts) && $! ) {
+        $self->Fatal("Cannot read config file $file: $!");
     }
     if ( !$copts || ref($copts) ne 'HASH' ) {
         $self->Fatal("Config file $file did not return a hash ref.");
