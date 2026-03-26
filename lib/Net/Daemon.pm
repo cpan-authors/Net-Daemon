@@ -517,7 +517,7 @@ sub ChildFunc {
 #
 #   Name:    Bind (Instance method)
 #
-#   Purpose: Binds to a port; if successfull, it never returns. Instead
+#   Purpose: Binds to a port; if successful, it never returns. Instead
 #            it accepts connections. For any connection a new thread is
 #            created and the Accept method is executed.
 #
@@ -836,12 +836,12 @@ example, if the user raises a USR1 signal (as typically used to
 reread config files), then the function returns an error EINTR.
 If the I<catchint> option is on (by default it is, use
 B<--nocatchint> to turn this off), then the package will ignore
-EINTR errors whereever possible.
+EINTR errors wherever possible.
 
 =item I<chroot> (B<--chroot=dir>)
 
 (UNIX only)  After doing a bind(), change root directory to the given
-directory by doing a chroot(). This is usefull for security operations,
+directory by doing a chroot(). This is useful for security operations,
 but it restricts programming a lot. For example, you typically have to
 load external Perl extensions before doing a chroot(), or you need to
 create hard links to Unix sockets. This is typically done in the config
@@ -879,7 +879,7 @@ B<daemon>.
 =item I<group> (B<--group=gid>)
 
 After doing a bind(), change the real and effective GID to the given.
-This is usefull, if you want your server to bind to a privileged port
+This is useful, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --user option.
 
@@ -1000,7 +1000,7 @@ Sockets are assumed to be IO::Socket objects.
 =item I<user> (B<--user=uid>)
 
 After doing a bind(), change the real and effective UID to the given.
-This is usefull, if you want your server to bind to a privileged port
+This is useful, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --group and the --chroot options.
 
@@ -1112,7 +1112,7 @@ hash refs may contain arbitrary attributes, including the following:
 
 A Perl regular expression that has to match the clients IP number or
 its host name. The list is processed from the left to the right, whenever
-a 'mask' attribute matches, then the related hash ref is choosen as
+a 'mask' attribute matches, then the related hash ref is chosen as
 client and processing the client list stops.
 
 =item accept
