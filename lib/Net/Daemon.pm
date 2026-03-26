@@ -593,7 +593,8 @@ sub Bind ($) {
     }
     $self->Log( 'notice', "Server starting" );
 
-    if ( ( my $pidfile = ( $self->{'pidfile'} || '' ) ) ne 'none' ) {
+    my $pidfile = $self->{'pidfile'};
+    if ( $pidfile && $pidfile ne 'none' ) {
         $self->Debug("Writing PID to $pidfile");
         my $fh = Symbol::gensym();
         $self->Fatal("Cannot write to $pidfile: $!")
@@ -1074,7 +1075,7 @@ as an example:
 	'user' => 'nobody',
 	'group' => 'nobody',
 	'localport' => '1003',
-	'mode' => 'fork'
+	'mode' => 'fork',
 
 	# Access control
         'clients' => [
@@ -1087,7 +1088,7 @@ as an example:
 	    {
 		'mask' => '^myhost\.company\.com$',
                 'accept' => 1
-            }
+            },
 	    # Deny everything else
 	    {
 		'mask' => '.*',
