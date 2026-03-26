@@ -68,7 +68,7 @@ sub OpenLog($) {
         require Win32::EventLog;
         $self->{'eventLog'} = Win32::EventLog->new( ref($self), '' )
           or die "Cannot open EventLog:" . Win32::GetLastError();
-        $self->{'$eventId'} = 0;
+        $self->{'eventId'} = 0;
     }
     else {
         eval { require Sys::Syslog };
