@@ -128,7 +128,7 @@ sub Options ($) {
         },
         'mode' => {
             'template'    => 'mode=s',
-            'description' => '--mode <mode>           ' . 'Operation mode (threads, fork or single)'
+            'description' => '--mode <mode>           ' . 'Operation mode (ithreads, fork or single)'
         },
         'pidfile' => {
             'template'    => 'pidfile=s',
@@ -941,8 +941,7 @@ the environment.
 If you are running Perl 5.005 and did compile it for threads, then
 the server will create a new thread for each connection. The thread
 will execute the server's Run() method and then terminate. This mode
-is the default, you can force it with "--mode=ithreads" or
-"--mode=threads".
+is the default, you can force it with "--mode=ithreads".
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
@@ -1074,7 +1073,7 @@ as an example:
 	'user' => 'nobody',
 	'group' => 'nobody',
 	'localport' => '1003',
-	'mode' => 'fork'
+	'mode' => 'fork',
 
 	# Access control
         'clients' => [
@@ -1087,7 +1086,7 @@ as an example:
 	    {
 		'mask' => '^myhost\.company\.com$',
                 'accept' => 1
-            }
+            },
 	    # Deny everything else
 	    {
 		'mask' => '.*',
