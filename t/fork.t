@@ -16,6 +16,7 @@ eval {
         if ( defined($pid) ) {
             if ( !$pid ) { exit 0; }    # Child
         }
+        waitpid( $pid, 0 );
         $ok = 1;
     }
 };
@@ -81,5 +82,4 @@ printf( "%s 5\n", $fh->close() ? "ok" : "not ok" );
 END {
     if ($handle)           { $handle->Terminate() }
     if ( -f "ndtest.prt" ) { unlink "ndtest.prt" }
-    exit 0;
 }
