@@ -13,6 +13,10 @@ if ( !$Config{useithreads} ) {
     print "1..0 # SKIP This test requires a perl with working ithreads.\n";
     exit 0;
 }
+if ( $] < 5.010 ) {
+    print "1..0 # SKIP Perl $] ithreads global destruction is unstable before 5.10\n";
+    exit 0;
+}
 require threads;
 
 print "1..2\n";
