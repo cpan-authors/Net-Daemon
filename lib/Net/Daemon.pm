@@ -37,14 +37,13 @@ our @ISA = qw(Net::Daemon::Log);
 
 our $RegExpLock = 1;
 
-# Dummy share() in case we're >= 5.10. If we are, require/import of
-# threads::shared will replace it appropriately.
-# But ONLY if we are built with threads and forks has not already been loaded.
+# Share $RegExpLock for thread safety when ithreads are available.
+# Uses explicit \$ref because the prototype isn't visible after require.
 my $use_ithreads = ( $^V ge v5.10.0 && $Config{'useithreads'} && !$INC{'forks.pm'} ) ? 1 : 0;
 if ($use_ithreads) {
     eval { require threads; };
     eval { require threads::shared; };
-    threads::shared::share( $RegExpLock );
+    threads::shared::share( \$RegExpLock );
 }
 
 our $exit;
