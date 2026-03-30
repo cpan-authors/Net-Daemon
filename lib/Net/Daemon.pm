@@ -37,14 +37,13 @@ our @ISA = qw(Net::Daemon::Log);
 
 our $RegExpLock = 1;
 
-# Dummy share() in case we're >= 5.10. If we are, require/import of
-# threads::shared will replace it appropriately.
-# But ONLY if we are built with threads and forks has not already been loaded.
+# Share $RegExpLock for thread safety when ithreads are available.
+# Uses explicit \$ref because the prototype isn't visible after require.
 my $use_ithreads = ( $^V ge v5.10.0 && $Config{'useithreads'} && !$INC{'forks.pm'} ) ? 1 : 0;
 if ($use_ithreads) {
     eval { require threads; };
     eval { require threads::shared; };
-    threads::shared::share( $RegExpLock ) if $forks::threads; # Assuming this isn't threads masquerading as forks.
+    threads::shared::share( \$RegExpLock );
 }
 
 our $exit;
@@ -392,13 +391,13 @@ sub Accept ($) {
             }
             my $masks = ref( $client->{'mask'} ) ? $client->{'mask'} : [ $client->{'mask'} ];
 
-            #
-            # Regular expressions aren't thread safe, as of
-            # 5.00502 :-(
+            # Lock regex operations for thread safety. Modern Perl
+            # (5.10+) has thread-safe regex, but subclasses may rely
+            # on $RegExpLock for their own synchronization.
             #
             my $lock;
             $lock = lock($RegExpLock)
-              if ( $self->{'mode'} eq 'threads' );
+              if ( $self->{'mode'} eq 'ithreads' );
             foreach my $mask (@$masks) {
                 foreach my $alias (@patterns) {
                     if ( $alias =~ /$mask/ ) {
@@ -597,9 +596,9 @@ sub Bind ($) {
         $self->Debug("Writing PID to $pidfile");
         my $fh = Symbol::gensym();
         $self->Fatal("Cannot write to $pidfile: $!")
-          unless ( open( OUT, ">$pidfile" )
-            and ( print OUT "$$\n" )
-            and close(OUT) );
+          unless ( open( $fh, '>', $pidfile )
+            and ( print $fh "$$\n" )
+            and close($fh) );
     }
 
     if ( my $dir = $self->{'chroot'} ) {
@@ -610,7 +609,6 @@ sub Bind ($) {
     }
     if ( my $group = $self->{'group'} ) {
         $self->Debug("Changing GID to $group");
-        my $gid;
         if ( $group !~ /^\d+$/ ) {
             if ( defined( my $gid = getgrnam($group) ) ) {
                 $group = $gid;
@@ -623,7 +621,6 @@ sub Bind ($) {
     }
     if ( my $user = $self->{'user'} ) {
         $self->Debug("Changing UID to $user");
-        my $uid;
         if ( $user !~ /^\d+$/ ) {
             if ( defined( my $uid = getpwnam($user) ) ) {
                 $user = $uid;
@@ -786,8 +783,8 @@ Net::Daemon - Perl extension for portable daemons
 =head1 DESCRIPTION
 
 Net::Daemon is an abstract base class for implementing portable server
-applications in a very simple way. The module is designed for Perl 5.005
-and threads, but can work with fork() and Perl 5.004.
+applications in a very simple way. The module is designed for Perl 5.006
+and ithreads, but can work with fork() as well.
 
 The Net::Daemon class offers methods for the most common tasks a daemon
 needs: Starting up, logging, accepting clients, authorization, restricting
@@ -938,11 +935,10 @@ I<loop-timeout>.
 The Net::Daemon server can run in three different modes, depending on
 the environment.
 
-If you are running Perl 5.005 and did compile it for threads, then
-the server will create a new thread for each connection. The thread
-will execute the server's Run() method and then terminate. This mode
-is the default, you can force it with "--mode=ithreads" or
-"--mode=threads".
+If you are running Perl 5.10 or later and it was compiled with ithreads
+support, then the server will create a new thread for each connection.
+The thread will execute the server's Run() method and then terminate.
+This mode is the default, you can force it with "--mode=ithreads".
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
