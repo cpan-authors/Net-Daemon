@@ -278,7 +278,7 @@ sub new ($$;$) {
         $self->{'mode'} = 'single';
     }
     elsif ( !defined( $self->{'mode'} ) ) {
-        if ( eval { require threads } ) {
+        if ( $^V ge v5.10.0 && eval { require threads } ) {
             $self->{'mode'} = 'ithreads';
         }
         else {
