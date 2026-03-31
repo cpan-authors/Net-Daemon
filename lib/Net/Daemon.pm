@@ -610,7 +610,6 @@ sub Bind ($) {
     }
     if ( my $group = $self->{'group'} ) {
         $self->Debug("Changing GID to $group");
-        my $gid;
         if ( $group !~ /^\d+$/ ) {
             if ( defined( my $gid = getgrnam($group) ) ) {
                 $group = $gid;
@@ -620,10 +619,12 @@ sub Bind ($) {
             }
         }
         $( = ( $) = $group );
+        if ( (split(' ', $)))[0] != $group ) {
+            $self->Fatal("Failed to change effective GID to $group: $!");
+        }
     }
     if ( my $user = $self->{'user'} ) {
         $self->Debug("Changing UID to $user");
-        my $uid;
         if ( $user !~ /^\d+$/ ) {
             if ( defined( my $uid = getpwnam($user) ) ) {
                 $user = $uid;
@@ -633,6 +634,9 @@ sub Bind ($) {
             }
         }
         $< = ( $> = $user );
+        if ( $> != $user ) {
+            $self->Fatal("Failed to change effective UID to $user: $!");
+        }
     }
 
     if ( $self->{'childs'} ) {
