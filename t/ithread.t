@@ -22,14 +22,9 @@ if ( !$Config{useithreads} ) {
 # Perl ithreads on Windows use DuplicateHandle() to clone file descriptors
 # into new threads.  MSDN explicitly states that DuplicateHandle must not
 # be used with Winsock SOCKETs — WSADuplicateSocket() is required instead.
-# Since Perl core does not use WSADuplicateSocket, accepted client sockets
-# get corrupted when cloned into handler threads, causing sporadic
-# "Invalid argument" errors during socket I/O.  This is a Perl core
-# limitation, not a Net::Daemon bug.  See #19, #30.
-if ( $^O eq "MSWin32" ) {
-    print "1..0 # SKIP Perl ithreads on Windows cannot safely duplicate Winsock sockets (DuplicateHandle vs WSADuplicateSocket)\n";
-    exit 0;
-}
+# The ChildFunc fix (closing cloned listening socket at thread start)
+# mitigates the worst symptom.  This test validates that mitigation.
+# See #19, #30.
 
 require threads;
 
