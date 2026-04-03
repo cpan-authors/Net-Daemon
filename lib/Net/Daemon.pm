@@ -127,7 +127,7 @@ sub Options ($) {
         },
         'mode' => {
             'template'    => 'mode=s',
-            'description' => '--mode <mode>           ' . 'Operation mode (threads, fork or single)'
+            'description' => '--mode <mode>           ' . 'Operation mode (ithreads, fork or single)'
         },
         'pidfile' => {
             'template'    => 'pidfile=s',
@@ -1070,7 +1070,7 @@ as an example:
 	'user' => 'nobody',
 	'group' => 'nobody',
 	'localport' => '1003',
-	'mode' => 'fork'
+	'mode' => 'fork',
 
 	# Access control
         'clients' => [
@@ -1083,7 +1083,7 @@ as an example:
 	    {
 		'mask' => '^myhost\.company\.com$',
                 'accept' => 1
-            }
+            },
 	    # Deny everything else
 	    {
 		'mask' => '.*',
@@ -1200,7 +1200,7 @@ given base.
 
   package Calculator;
 
-  our $VERSION = '0.01';
+  our $VERSION = '0.51';
   our @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
 
   sub Version ($) { 'Calculator Example Server, 0.01'; }
