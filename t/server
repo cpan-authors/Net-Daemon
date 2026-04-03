@@ -68,7 +68,7 @@ sub Run ($) {
             my $num;
             {
                 my $lock = lock($Net::Daemon::RegExpLock)
-                  if ( $self->{'mode'} eq 'threads' );
+                  if ( $self->{'mode'} eq 'ithreads' );
                 if ( $line =~ /(\d+)/ ) {
                     $num = $1;
                 }
