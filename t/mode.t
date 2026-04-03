@@ -34,6 +34,17 @@ SKIP: {
         'auto-detection avoids ithreads on Perl < 5.10' );
 }
 
+# On Windows, auto-detection should NOT pick ithreads.  Perl ithreads
+# use DuplicateHandle() to clone socket FDs into new threads, but
+# MSDN requires WSADuplicateSocket() for Winsock sockets.  The
+# DuplicateHandle'd client sockets become corrupted, causing EINVAL
+# on read after ~15 iterations.  See #19, #30.
+SKIP: {
+    skip 'Only verifiable on MSWin32', 1 unless $^O eq 'MSWin32';
+    isnt( $mode, 'ithreads',
+        'auto-detection avoids ithreads on Windows' );
+}
+
 # Explicit --mode=ithreads is always respected (user's choice)
 SKIP: {
     skip 'No ithreads support', 1 unless $Config{useithreads};
