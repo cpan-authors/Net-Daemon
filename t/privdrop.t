@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 #
-# Test that Bind() detects failed privilege dropping.
+# Test that Bind() drops privileges permanently.
 #
-# On Perl (all versions through 5.42+), assigning to $> (EUID) or $)
-# (EGID) silently succeeds even when the underlying setuid()/setgid()
-# fails. Net::Daemon::Bind() must verify the change took effect,
-# otherwise the daemon continues running with elevated privileges.
+# Two concerns:
+#   1. Silent failure: Perl's $> = $uid silently ignores setuid failures.
+#      Bind() must detect and abort on failed privilege changes.
+#   2. Saved-set-user-ID: Using $< = ($> = $uid) leaves saved-set-user-ID
+#      as root, allowing the process to regain root via $> = 0.
+#      Bind() must use POSIX::setuid() to set all three UIDs.
 #
 
 use strict;
@@ -13,25 +15,18 @@ use warnings;
 use Test::More;
 use IO::Socket ();
 
-# Skip on Windows — no meaningful uid/gid semantics
 if ($^O eq 'MSWin32') {
     plan skip_all => 'Privilege dropping is not applicable on Windows';
 }
 
-# Skip if running as root — setuid/setgid would actually succeed
-if ($> == 0) {
-    plan skip_all => 'Cannot test privilege drop failure when running as root';
-}
-
-plan tests => 2;
+plan tests => 3;
 
 use_ok('Net::Daemon');
 
-# Override Fatal in the correct package (Net::Daemon::Log, inherited by Net::Daemon)
+# Override Fatal to capture calls instead of dying
 my @fatals;
-my $orig_fatal = \&Net::Daemon::Log::Fatal;
 {
-    no warnings 'redefine', 'prototype';
+    no warnings 'redefine', 'prototype', 'once';
     *Net::Daemon::Log::Fatal = sub ($$;@) {
         my ($self, $fmt, @args) = @_;
         push @fatals, sprintf($fmt, @args);
@@ -39,47 +34,79 @@ my $orig_fatal = \&Net::Daemon::Log::Fatal;
     };
 }
 
-# Create a daemon object with a --user that differs from our current uid.
-# Since we're not root, setuid will fail silently in Perl.
-my $bogus_uid = ($> == 65534) ? 65533 : 65534;  # pick a uid != ours
-my $self = bless {
-    'user'     => $bogus_uid,
-    'pidfile'  => 'none',        # skip pidfile logic
-    'mode'     => 'single',
-    'catchint' => 1,
-    'done'     => 1,             # exit accept loop immediately if we get there
-    'socket'   => IO::Socket::INET->new(
-        'LocalAddr' => '127.0.0.1',
-        'LocalPort' => 0,
-        'Proto'     => 'tcp',
-        'Listen'    => 1,
-        'Reuse'     => 1,
-    ),
-}, 'Net::Daemon';
+# --- Test: non-root UID change must fail with Fatal ---
+SKIP: {
+    skip 'Cannot test privilege drop failure when running as root', 1
+        if $> == 0;
 
-# Use alarm as safety net against hanging
-local $SIG{ALRM} = sub { die "Test timed out — Bind() entered accept loop without privilege check\n" };
-alarm(5);
+    @fatals = ();
+    my $bogus_uid = ($> == 65534) ? 65533 : 65534;
+    my $self = bless {
+        'user'     => $bogus_uid,
+        'pidfile'  => 'none',
+        'mode'     => 'single',
+        'catchint' => 1,
+        'done'     => 1,
+        'socket'   => IO::Socket::INET->new(
+            'LocalAddr' => '127.0.0.1',
+            'LocalPort' => 0,
+            'Proto'     => 'tcp',
+            'Listen'    => 1,
+            'Reuse'     => 1,
+        ),
+    }, 'Net::Daemon';
 
-eval { $self->Bind() };
-alarm(0);
+    local $SIG{ALRM} = sub { die "Timed out\n" };
+    alarm(5);
+    eval { $self->Bind() };
+    alarm(0);
 
-my $err = $@;
+    my $got_uid_fatal = scalar(@fatals) && grep { /UID|uid|setuid|Failed/i } @fatals;
+    ok($got_uid_fatal, 'Bind() detects failed UID change and calls Fatal()')
+        or diag("Got: ", @fatals ? join('; ', @fatals) : '(no Fatal)');
+}
 
-# The daemon should have called Fatal() because privilege drop failed.
-# If it didn't, the daemon entered its main loop with elevated privileges.
-ok(
-    scalar(@fatals) && grep { /UID|uid|setuid|privilege/i } @fatals,
-    "Bind() detects failed UID change and calls Fatal()"
-) or diag("Expected Fatal about UID change failure, got: ",
-          @fatals ? join('; ', @fatals) : "(no Fatal called — daemon ran with wrong UID!)",
-          $err ? "\nBind() died with: $err" : "");
+# --- Test: saved-set-user-ID is dropped (root + Linux only) ---
+SKIP: {
+    skip 'Requires root on Linux to test saved-set-user-ID', 1
+        unless $> == 0 && $^O eq 'linux' && -r '/proc/self/status';
 
-# Clean up
-$self->{'socket'}->close() if $self->{'socket'};
+    # Drop to nobody (65534) and verify saved-set-user-ID
+    my $target_uid = 65534;
+    @fatals = ();
+    my $self = bless {
+        'user'     => $target_uid,
+        'pidfile'  => 'none',
+        'mode'     => 'single',
+        'catchint' => 1,
+        'done'     => 1,
+        'socket'   => IO::Socket::INET->new(
+            'LocalAddr' => '127.0.0.1',
+            'LocalPort' => 0,
+            'Proto'     => 'tcp',
+            'Listen'    => 1,
+            'Reuse'     => 1,
+        ),
+    }, 'Net::Daemon';
 
-# Restore
-{
-    no warnings 'redefine', 'prototype';
-    *Net::Daemon::Log::Fatal = $orig_fatal;
+    local $SIG{ALRM} = sub { die "Timed out\n" };
+    alarm(5);
+    eval { $self->Bind() };
+    alarm(0);
+
+    # Read saved-set-user-ID from /proc/self/status
+    my $saved_uid;
+    if (open my $fh, '<', '/proc/self/status') {
+        while (<$fh>) {
+            if (/^Uid:\s+\d+\s+\d+\s+(\d+)/) {
+                $saved_uid = $1;
+                last;
+            }
+        }
+        close $fh;
+    }
+
+    is($saved_uid, $target_uid,
+        'saved-set-user-ID is dropped (not left as root)')
+        or diag("saved-set-user-ID=$saved_uid, expected $target_uid");
 }
