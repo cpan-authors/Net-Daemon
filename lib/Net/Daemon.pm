@@ -623,6 +623,9 @@ sub Bind ($) {
             }
         }
         $( = ( $) = $group );
+        if ( (split(' ', $)))[0] != $group ) {
+            $self->Fatal("Failed to change effective GID to $group: $!");
+        }
     }
     if ( my $user = $self->{'user'} ) {
         $self->Debug("Changing UID to $user");
@@ -635,6 +638,9 @@ sub Bind ($) {
             }
         }
         $< = ( $> = $user );
+        if ( $> != $user ) {
+            $self->Fatal("Failed to change effective UID to $user: $!");
+        }
     }
 
     if ( $self->{'childs'} ) {
