@@ -13,6 +13,10 @@ use Test::More;
 if ( !$Config{useithreads} ) {
     plan skip_all => 'This test requires a perl with working ithreads.';
 }
+if ( $] < 5.010 ) {
+    print "1..0 # SKIP Perl $] ithreads global destruction is unstable before 5.10\n";
+    exit 0;
+}
 require threads;
 
 plan tests => 2;
