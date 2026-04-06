@@ -36,7 +36,7 @@ use Net::Daemon    ();
 use Symbol         ();
 use File::Basename ();
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 our @ISA     = qw(Net::Daemon);
 
 =head1 NAME

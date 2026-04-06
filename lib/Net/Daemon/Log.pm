@@ -23,7 +23,7 @@ use warnings;
 
 package Net::Daemon::Log;
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 
 use Config;
 
