@@ -14,6 +14,7 @@ eval {
         if ( defined($pid) ) {
             if ( !$pid ) { exit 0; }    # Child
         }
+        waitpid( $pid, 0 );
         $ok = 1;
     }
 };
