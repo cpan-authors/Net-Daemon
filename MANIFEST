@@ -7,6 +7,7 @@ Makefile.PL			Makefile generator
 MANIFEST			This file
 MANIFEST.SKIP			Files to ignore while generating the dist archive
 README				Ascii docs
+README.md
 t/base.t			Base test
 t/clone.t			Test of post_clone() hook for per-connection init
 t/config.t			Test of config file handling and access control

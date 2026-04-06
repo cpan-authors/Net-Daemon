@@ -794,6 +794,8 @@ sub ServClose {
 
 __END__
 
+=for markdown [![testsuite](https://github.com/cpan-authors/Net-Daemon/actions/workflows/testsuite.yml/badge.svg)](https://github.com/cpan-authors/Net-Daemon/actions/workflows/testsuite.yml)
+
 =head1 NAME
 
 Net::Daemon - Perl extension for portable daemons
