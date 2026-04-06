@@ -277,7 +277,7 @@ sub new ($$;$) {
         $self->{'mode'} = 'single';
     }
     elsif ( !defined( $self->{'mode'} ) ) {
-        if ( eval { require threads } ) {
+        if ( $^O ne 'MSWin32' && $^V ge v5.10.0 && eval { require threads } ) {
             $self->{'mode'} = 'ithreads';
         }
         else {
@@ -935,10 +935,18 @@ I<loop-timeout>.
 The Net::Daemon server can run in three different modes, depending on
 the environment.
 
-If you are running Perl 5.10 or later and it was compiled with ithreads
-support, then the server will create a new thread for each connection.
-The thread will execute the server's Run() method and then terminate.
-This mode is the default, you can force it with "--mode=ithreads".
+If you are running Perl 5.10 or later with ithreads support on a
+non-Windows platform, the server will create a new thread for each
+connection. The thread will execute the server's Run() method and
+then terminate. This mode is the default on Unix-like systems; you
+can force it with "--mode=ithreads".
+
+B<Note:> Ithreads mode is not auto-detected on Windows because Perl
+uses C<DuplicateHandle()> to clone socket file descriptors into new
+threads, whereas Winsock requires C<WSADuplicateSocket()>. The
+duplicated client sockets become corrupted, causing I/O errors.
+You may still pass C<--mode=ithreads> explicitly, but expect failures
+under concurrent load. See L<https://github.com/cpan-authors/Net-Daemon/issues/19>.
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
@@ -948,7 +956,7 @@ you use the "--mode=fork" option.
 Finally there's a single-connection mode: If the server has accepted a
 connection, he will enter the Run() method. No other connections are
 accepted until the Run() method returns. This operation mode is useful
-if you have neither threads nor fork(), for example on the Macintosh.
+if you have neither threads nor fork(), for example on Windows.
 For debugging purposes you can force this mode with "--mode=single".
 
 When running in mode single, you can still handle multiple clients at
