@@ -622,9 +622,13 @@ sub Bind ($) {
                 $self->Fatal("Cannot determine gid of $group: $!");
             }
         }
-        $( = ( $) = $group );
+        $) = $group;    # Set effective GID and supplementary groups
+        # Use POSIX::setgid() to also set saved-set-group-ID, preventing
+        # the process from regaining the original group via $) = 0.
+        POSIX::setgid($group)
+            or $self->Fatal("Failed to set GID to $group: $!");
         if ( (split(' ', $)))[0] != $group ) {
-            $self->Fatal("Failed to change effective GID to $group: $!");
+            $self->Fatal("Failed to change effective GID to $group");
         }
     }
     if ( my $user = $self->{'user'} ) {
@@ -637,9 +641,13 @@ sub Bind ($) {
                 $self->Fatal("Cannot determine uid of $user: $!");
             }
         }
-        $< = ( $> = $user );
+        # Use POSIX::setuid() instead of $< = ($> = $user) to also set
+        # saved-set-user-ID, preventing the process from regaining root
+        # via $> = 0.
+        POSIX::setuid($user)
+            or $self->Fatal("Failed to set UID to $user: $!");
         if ( $> != $user ) {
-            $self->Fatal("Failed to change effective UID to $user: $!");
+            $self->Fatal("Failed to change effective UID to $user");
         }
     }
 
