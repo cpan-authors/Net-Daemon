@@ -7,10 +7,10 @@ use IO::Socket        ();
 use Config            ();
 use Net::Daemon::Test ();
 use Fcntl             ();
-use Config            ();
 use POSIX qw/WNOHANG/;
 
-my $debug = 0;
+my $debug    = 0;
+my $main_pid = $$;
 my $dh;
 if ($debug) {
     $dh = Symbol::gensym();
@@ -202,6 +202,7 @@ END {
     }
     %childs = ();
     unlink "ndtest.prt";
+    unlink "log" if $$ == $main_pid;
     DEBUG("END: <-");
     exit 0;
 }
