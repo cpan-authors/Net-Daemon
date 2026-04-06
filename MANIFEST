@@ -18,6 +18,7 @@ t/listen.t			Test the --listen option
 t/logfile.t			Test logfile string handling in Net::Daemon::Log
 t/loop-child.t			Same with loop-child set
 t/loop.t			Test the loop-timeout option
+t/mode.t			Test mode auto-detection and explicit selection
 t/reap.t
 t/server			Script used by the server tests
 t/single.t			Test of a single-mode server

@@ -22,8 +22,8 @@
 #   GNU General Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License
-#   along with this module; if not, write to the Free Software
-#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#   along with this module; if not, see
+#   <https://www.gnu.org/licenses/>.
 #
 ############################################################################
 
@@ -36,7 +36,7 @@ use Net::Daemon    ();
 use Symbol         ();
 use File::Basename ();
 
-our $VERSION = '0.03';
+our $VERSION = '0.51';
 our @ISA     = qw(Net::Daemon);
 
 =head1 NAME
@@ -96,13 +96,13 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
 =head1 DESCRIPTION
 
 This module is a frame for creating test scripts of Net::Daemon based
-server packages, preferrably using Test::Harness, but that's your
+server packages, preferably using Test::Harness, but that's your
 choice.
 
 A test consists of two parts: The client part and the server part.
 The test is executed by the child part which invokes the server part,
 by spawning a child process and invoking an external Perl script.
-(Of course we woultn't need this external file with fork(), but that's
+(Of course we wouldn't need this external file with fork(), but that's
 the best possibility to make the test scripts portable to Windows
 without requiring threads in the test script.)
 

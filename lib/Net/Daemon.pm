@@ -37,14 +37,13 @@ our @ISA = qw(Net::Daemon::Log);
 
 our $RegExpLock = 1;
 
-# Dummy share() in case we're >= 5.10. If we are, require/import of
-# threads::shared will replace it appropriately.
-# But ONLY if we are built with threads and forks has not already been loaded.
+# Share $RegExpLock for thread safety when ithreads are available.
+# Uses explicit \$ref because the prototype isn't visible after require.
 my $use_ithreads = ( $^V ge v5.10.0 && $Config{'useithreads'} && !$INC{'forks.pm'} ) ? 1 : 0;
 if ($use_ithreads) {
     eval { require threads; };
     eval { require threads::shared; };
-    threads::shared::share( $RegExpLock ) if $forks::threads; # Assuming this isn't threads masquerading as forks.
+    threads::shared::share( \$RegExpLock );
 }
 
 our $exit;
@@ -128,7 +127,7 @@ sub Options ($) {
         },
         'mode' => {
             'template'    => 'mode=s',
-            'description' => '--mode <mode>           ' . 'Operation mode (threads, fork or single)'
+            'description' => '--mode <mode>           ' . 'Operation mode (ithreads, fork or single)'
         },
         'pidfile' => {
             'template'    => 'pidfile=s',
@@ -278,7 +277,7 @@ sub new ($$;$) {
         $self->{'mode'} = 'single';
     }
     elsif ( !defined( $self->{'mode'} ) ) {
-        if ( eval { require threads } ) {
+        if ( $^O ne 'MSWin32' && $^V ge v5.10.0 && eval { require threads } ) {
             $self->{'mode'} = 'ithreads';
         }
         else {
@@ -392,13 +391,13 @@ sub Accept ($) {
             }
             my $masks = ref( $client->{'mask'} ) ? $client->{'mask'} : [ $client->{'mask'} ];
 
-            #
-            # Regular expressions aren't thread safe, as of
-            # 5.00502 :-(
+            # Lock regex operations for thread safety. Modern Perl
+            # (5.10+) has thread-safe regex, but subclasses may rely
+            # on $RegExpLock for their own synchronization.
             #
             my $lock;
             $lock = lock($RegExpLock)
-              if ( $self->{'mode'} eq 'threads' );
+              if ( $self->{'mode'} eq 'ithreads' );
             foreach my $mask (@$masks) {
                 foreach my $alias (@patterns) {
                     if ( $alias =~ /$mask/ ) {
@@ -517,7 +516,7 @@ sub ChildFunc {
 #
 #   Name:    Bind (Instance method)
 #
-#   Purpose: Binds to a port; if successfull, it never returns. Instead
+#   Purpose: Binds to a port; if successful, it never returns. Instead
 #            it accepts connections. For any connection a new thread is
 #            created and the Accept method is executed.
 #
@@ -597,9 +596,9 @@ sub Bind ($) {
         $self->Debug("Writing PID to $pidfile");
         my $fh = Symbol::gensym();
         $self->Fatal("Cannot write to $pidfile: $!")
-          unless ( open( OUT, ">$pidfile" )
-            and ( print OUT "$$\n" )
-            and close(OUT) );
+          unless ( open( $fh, '>', $pidfile )
+            and ( print $fh "$$\n" )
+            and close($fh) );
     }
 
     if ( my $dir = $self->{'chroot'} ) {
@@ -610,7 +609,6 @@ sub Bind ($) {
     }
     if ( my $group = $self->{'group'} ) {
         $self->Debug("Changing GID to $group");
-        my $gid;
         if ( $group !~ /^\d+$/ ) {
             if ( defined( my $gid = getgrnam($group) ) ) {
                 $group = $gid;
@@ -623,7 +621,6 @@ sub Bind ($) {
     }
     if ( my $user = $self->{'user'} ) {
         $self->Debug("Changing UID to $user");
-        my $uid;
         if ( $user !~ /^\d+$/ ) {
             if ( defined( my $uid = getpwnam($user) ) ) {
                 $user = $uid;
@@ -786,8 +783,8 @@ Net::Daemon - Perl extension for portable daemons
 =head1 DESCRIPTION
 
 Net::Daemon is an abstract base class for implementing portable server
-applications in a very simple way. The module is designed for Perl 5.005
-and threads, but can work with fork() and Perl 5.004.
+applications in a very simple way. The module is designed for Perl 5.006
+and ithreads, but can work with fork() as well.
 
 The Net::Daemon class offers methods for the most common tasks a daemon
 needs: Starting up, logging, accepting clients, authorization, restricting
@@ -836,12 +833,12 @@ example, if the user raises a USR1 signal (as typically used to
 reread config files), then the function returns an error EINTR.
 If the I<catchint> option is on (by default it is, use
 B<--nocatchint> to turn this off), then the package will ignore
-EINTR errors whereever possible.
+EINTR errors wherever possible.
 
 =item I<chroot> (B<--chroot=dir>)
 
 (UNIX only)  After doing a bind(), change root directory to the given
-directory by doing a chroot(). This is usefull for security operations,
+directory by doing a chroot(). This is useful for security operations,
 but it restricts programming a lot. For example, you typically have to
 load external Perl extensions before doing a chroot(), or you need to
 create hard links to Unix sockets. This is typically done in the config
@@ -879,7 +876,7 @@ B<daemon>.
 =item I<group> (B<--group=gid>)
 
 After doing a bind(), change the real and effective GID to the given.
-This is usefull, if you want your server to bind to a privileged port
+This is useful, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --user option.
 
@@ -938,11 +935,18 @@ I<loop-timeout>.
 The Net::Daemon server can run in three different modes, depending on
 the environment.
 
-If you are running Perl 5.005 and did compile it for threads, then
-the server will create a new thread for each connection. The thread
-will execute the server's Run() method and then terminate. This mode
-is the default, you can force it with "--mode=ithreads" or
-"--mode=threads".
+If you are running Perl 5.10 or later with ithreads support on a
+non-Windows platform, the server will create a new thread for each
+connection. The thread will execute the server's Run() method and
+then terminate. This mode is the default on Unix-like systems; you
+can force it with "--mode=ithreads".
+
+B<Note:> Ithreads mode is not auto-detected on Windows because Perl
+uses C<DuplicateHandle()> to clone socket file descriptors into new
+threads, whereas Winsock requires C<WSADuplicateSocket()>. The
+duplicated client sockets become corrupted, causing I/O errors.
+You may still pass C<--mode=ithreads> explicitly, but expect failures
+under concurrent load. See L<https://github.com/cpan-authors/Net-Daemon/issues/19>.
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
@@ -952,7 +956,7 @@ you use the "--mode=fork" option.
 Finally there's a single-connection mode: If the server has accepted a
 connection, he will enter the Run() method. No other connections are
 accepted until the Run() method returns. This operation mode is useful
-if you have neither threads nor fork(), for example on the Macintosh.
+if you have neither threads nor fork(), for example on Windows.
 For debugging purposes you can force this mode with "--mode=single".
 
 When running in mode single, you can still handle multiple clients at
@@ -1000,7 +1004,7 @@ Sockets are assumed to be IO::Socket objects.
 =item I<user> (B<--user=uid>)
 
 After doing a bind(), change the real and effective UID to the given.
-This is usefull, if you want your server to bind to a privileged port
+This is useful, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --group and the --chroot options.
 
@@ -1074,7 +1078,7 @@ as an example:
 	'user' => 'nobody',
 	'group' => 'nobody',
 	'localport' => '1003',
-	'mode' => 'fork'
+	'mode' => 'fork',
 
 	# Access control
         'clients' => [
@@ -1087,7 +1091,7 @@ as an example:
 	    {
 		'mask' => '^myhost\.company\.com$',
                 'accept' => 1
-            }
+            },
 	    # Deny everything else
 	    {
 		'mask' => '.*',
@@ -1112,7 +1116,7 @@ hash refs may contain arbitrary attributes, including the following:
 
 A Perl regular expression that has to match the clients IP number or
 its host name. The list is processed from the left to the right, whenever
-a 'mask' attribute matches, then the related hash ref is choosen as
+a 'mask' attribute matches, then the related hash ref is chosen as
 client and processing the client list stops.
 
 =item accept
@@ -1204,7 +1208,7 @@ given base.
 
   package Calculator;
 
-  our $VERSION = '0.01';
+  our $VERSION = '0.51';
   our @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
 
   sub Version ($) { 'Calculator Example Server, 0.01'; }
