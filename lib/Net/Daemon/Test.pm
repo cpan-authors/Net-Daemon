@@ -96,13 +96,13 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
 =head1 DESCRIPTION
 
 This module is a frame for creating test scripts of Net::Daemon based
-server packages, preferrably using Test::Harness, but that's your
+server packages, preferably using Test::Harness, but that's your
 choice.
 
 A test consists of two parts: The client part and the server part.
 The test is executed by the child part which invokes the server part,
 by spawning a child process and invoking an external Perl script.
-(Of course we woultn't need this external file with fork(), but that's
+(Of course we wouldn't need this external file with fork(), but that's
 the best possibility to make the test scripts portable to Windows
 without requiring threads in the test script.)
 
