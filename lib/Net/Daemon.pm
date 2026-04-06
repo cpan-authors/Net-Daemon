@@ -596,7 +596,8 @@ sub Bind ($) {
     }
     $self->Log( 'notice', "Server starting" );
 
-    if ( ( my $pidfile = ( $self->{'pidfile'} || '' ) ) ne 'none' ) {
+    my $pidfile = $self->{'pidfile'};
+    if ( $pidfile && $pidfile ne 'none' ) {
         $self->Debug("Writing PID to $pidfile");
         my $fh = Symbol::gensym();
         $self->Fatal("Cannot write to $pidfile: $!")
