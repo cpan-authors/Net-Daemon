@@ -311,6 +311,7 @@ sub Child ($$@) {
 
                 # This is the child process, spawn the server.
                 exec @_;
+                die "exec failed: $!";
             }
             $handle = bless( \$pid, "Net::Daemon::Test::Fork" );
         }
