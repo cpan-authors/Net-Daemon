@@ -54,9 +54,7 @@ sub OpenLog($) {
                 $self->{'logfile'} = 1;
             }
             else {
-                require Symbol;
-                my $fh = Symbol::gensym();
-                open( $fh, '>>', $logfile )
+                open( my $fh, '>>', $logfile )
                     or die "Cannot open logfile $logfile: $!";
                 select((select($fh), $| = 1)[0]);
                 $self->{'logfile'} = $fh;
