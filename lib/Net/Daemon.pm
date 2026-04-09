@@ -26,7 +26,6 @@ use warnings;
 use Config;
 
 use Getopt::Long     ();
-use Symbol           ();
 use IO::Socket       ();
 use Net::Daemon::Log ();
 use POSIX            ();
@@ -612,7 +611,7 @@ sub Bind ($) {
     my $pidfile = $self->{'pidfile'};
     if ( $pidfile && $pidfile ne 'none' ) {
         $self->Debug("Writing PID to $pidfile");
-        my $fh = Symbol::gensym();
+        my $fh;
         $self->Fatal("Cannot write to $pidfile: $!")
           unless ( open( $fh, '>', $pidfile )
             and ( print $fh "$$\n" )

@@ -33,7 +33,6 @@ use strict;
 use warnings;
 
 use Net::Daemon    ();
-use Symbol         ();
 use File::Basename ();
 
 our $VERSION = '0.52';
@@ -196,7 +195,7 @@ sub Bind ($) {
 
     # Create the "ndtest.prt" file so that the child knows to what
     # port it may connect.
-    my $fh = Symbol::gensym();
+    my $fh;
     if (   !open( $fh, '>', 'ndtest.prt' )
         || !( print $fh $port )
         || !close($fh) ) {
@@ -330,8 +329,7 @@ sub Child ($$@) {
     # Sleep another second in case the server is still creating the
     # file with the port number ...
     sleep 1;
-    my $fh = Symbol::gensym();
-    my $port;
+    my ( $fh, $port );
     if (   !open( $fh, '<', 'ndtest.prt' )
         || !defined( $port = <$fh> )
         || !close($fh) ) {
