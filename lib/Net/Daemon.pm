@@ -594,8 +594,10 @@ sub Bind ($) {
             $self->{'socket'} = IO::Socket::UNIX->new(
                 'Local'  => $path,
                 'Listen' => $self->{'listen'} || 10
-            ) or $self->Fatal("Cannot create Unix socket $path: $!");
+            );
             umask $old_umask;
+            $self->Fatal("Cannot create Unix socket $path: $!")
+              unless $self->{'socket'};
         }
         else {
             $self->{'socket'} = IO::Socket::INET->new(
