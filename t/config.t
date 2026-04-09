@@ -1,17 +1,18 @@
 # -*- perl -*-
 #
-#   $Id: config.t,v 1.2 1999/08/12 14:28:59 joe Exp $
+#   Test access control via config file client masks.
 #
 require 5.004;
 use strict;
+use warnings;
 
 use IO::Socket        ();
 use Config            ();
 use Net::Daemon::Test ();
 use Socket            ();
+use Test::More;
 
 my $CONFIG_FILE = "t/config";
-my $numTests    = 5;
 
 sub RunTest ($$) {
     my $config   = shift;
@@ -37,76 +38,83 @@ sub RunTest ($$) {
       && defined( $result = $fh->getline() )
       && $result =~ /2/;
     $handle->Terminate();
-    $success ? "" : "not ";
+    $success;
 }
 
-print "Testing config file with open client list.\n";
-my $ok = RunTest(
-    q/{'mode' => 'single', 'timeout' => 60}/,
-    $numTests
+my $hostname = gethostbyaddr(
+    Socket::inet_aton("127.0.0.1"),
+    Socket::AF_INET()
 );
-print "${ok}ok 1\n";
 
-print "Testing config file with client 127.0.0.1.\n";
-$ok = RunTest(
-    q/
+if ($hostname) {
+    plan tests => 5;
+}
+else {
+    plan tests => 3;
+}
+
+ok(
+    RunTest( q/{'mode' => 'single', 'timeout' => 60}/, undef ),
+    "open client list accepts connection"
+);
+
+ok(
+    RunTest(
+        q/
     { 'mode' => 'single',
       'timeout' => 60,
       'clients' => [ { 'mask' => '^127\.0\.0\.1$', 'accept' => 1 },
                      { 'mask' => '.*', 'accept' => 0 }
                    ]
     }/, undef
+    ),
+    "accept client matching 127.0.0.1"
 );
-print "${ok}ok 2\n";
 
-print "Testing config file with client !127.0.0.1.\n";
-$ok = RunTest(
-    q/
+ok(
+    !RunTest(
+        q/
     { 'mode' => 'single',
       'timeout' => 60,
       'clients' => [ { 'mask' => '^127\.0\.0\.1$', 'accept' => 0 },
                      { 'mask' => '.*', 'accept' => 1 }
                    ]
     }/, undef
+    ),
+    "reject client matching 127.0.0.1"
 );
-print( ( $ok ? "" : "not " ), "ok 3\n" );
 
-my $hostname = gethostbyaddr(
-    Socket::inet_aton("127.0.0.1"),
-    Socket::AF_INET()
-);
 if ($hostname) {
     my $regexp = $hostname;
     $regexp =~ s/\./\\\./g;
-    print "Testing config file with client $hostname.\n";
-    $ok = RunTest(
-        q/
-    { 'mode' => 'single',
-      'timeout' => 60,
-      'clients' => [ { 'mask' => '^/
-          . $regexp . q/$', 'accept' => 1 },
-                     { 'mask' => '.*', 'accept' => 0 }
-                   ]
-    }/, undef
-    );
-    print "${ok}ok 4\n";
 
-    print "Testing config file with client !$hostname\n";
-    $ok = RunTest(
-        q/
-    { 'mode' => 'single',
-      'timeout' => 60,
-      'clients' => [ { 'mask' => '^/
-          . $regexp . q/$', 'accept' => 0 },
-                     { 'mask' => '.*', 'accept' => 1 }
-                   ]
-    }/, undef
+    ok(
+        RunTest(
+            q/
+        { 'mode' => 'single',
+          'timeout' => 60,
+          'clients' => [ { 'mask' => '^/
+              . $regexp . q/$', 'accept' => 1 },
+                         { 'mask' => '.*', 'accept' => 0 }
+                       ]
+        }/, undef
+        ),
+        "accept client matching hostname $hostname"
     );
-    print( ( $ok ? "" : "not " ), "ok 5\n" );
-}
-else {
-    print "ok 4 # skip\n";
-    print "ok 5 # skip\n";
+
+    ok(
+        !RunTest(
+            q/
+        { 'mode' => 'single',
+          'timeout' => 60,
+          'clients' => [ { 'mask' => '^/
+              . $regexp . q/$', 'accept' => 0 },
+                         { 'mask' => '.*', 'accept' => 1 }
+                       ]
+        }/, undef
+        ),
+        "reject client matching hostname $hostname"
+    );
 }
 
 END {
