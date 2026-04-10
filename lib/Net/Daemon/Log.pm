@@ -75,11 +75,6 @@ sub OpenLog($) {
         if ($@) {
             die "Cannot open Syslog: $@";
         }
-        if (   $^O ne 'solaris'
-            && $^O ne 'freebsd'
-            && eval { Sys::Syslog::_PATH_LOG() } ) {
-            Sys::Syslog::setlogsock('unix');
-        }
         Sys::Syslog::openlog(
             $self->{'logname'} || ref($self), 'pid',
             $self->{'facility'} || 'daemon'
