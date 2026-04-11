@@ -363,7 +363,7 @@ sub Accept ($) {
     my $clients = $self->{'clients'};
     my $from    = $self->{'proto'} eq 'unix' ? "Unix socket" : sprintf(
         "%s, port %s",
-        $socket->peerhost(), $socket->peerport()
+        $socket->peerhost() || 'unknown', $socket->peerport() || 0
     );
 
     # Host based authorization
@@ -380,12 +380,21 @@ sub Accept ($) {
             ( $name, $aliases, $addrtype, $length, @addrs ) =
               gethostbyaddr( $socket->peeraddr(), Socket::AF_INET() );
         }
-        my @patterns =
-          @addrs
-          ? map { Socket::inet_ntoa($_) } @addrs
-          : $socket->peerhost();
+        my @patterns;
+        if (@addrs) {
+            @patterns = map { Socket::inet_ntoa($_) } @addrs;
+        }
+        else {
+            my $peer = $socket->peerhost();
+            @patterns = ($peer) if defined $peer;
+        }
         push( @patterns, $name ) if ($name);
         push( @patterns, split( / /, $aliases ) ) if $aliases;
+
+        if ( !@patterns ) {
+            $self->Error("Cannot determine peer identity from $from");
+            return 0;
+        }
 
         my $found;
       OUTER: foreach my $client (@$clients) {
@@ -403,8 +412,13 @@ sub Accept ($) {
             $lock = lock($RegExpLock)
               if ( $self->{'mode'} eq 'ithreads' );
             foreach my $mask (@$masks) {
+                my $re = eval { qr/$mask/ };
+                if ( !$re ) {
+                    $self->Error("Invalid regex mask '$mask': $@");
+                    next;
+                }
                 foreach my $alias (@patterns) {
-                    if ( $alias =~ /$mask/ ) {
+                    if ( $alias =~ $re ) {
                         $found = $client;
                         last OUTER;
                     }
