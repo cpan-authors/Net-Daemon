@@ -164,7 +164,7 @@ jobs:
         uses: perl-actions/install-with-cpm@v1
         with:
           cpanfile: "cpanfile"
-          install: "Devel::Cover Devel::Cover::Report::Codecov"
+          install: "Devel::Cover"
       - name: Build
         run: perl Makefile.PL && make
       - name: Run tests with coverage
