@@ -522,7 +522,10 @@ sub ChildFunc {
     }
     else {
         my $pid = fork();
-        die "Cannot fork: $!" unless defined $pid;
+        if ( !defined $pid ) {
+            $self->Error("Cannot fork: %s", $!);
+            return;
+        }
         return if $pid;           # Parent
         $self->$method(@args);    # Child
         exit(0);

@@ -25,7 +25,7 @@ if ( !$ok ) {
     plan skip_all => 'This test requires a system with working forks.';
 }
 
-plan tests => 10;
+my $NUM_CHILDREN = 10;
 
 my ( $handle, $port );
 if (@ARGV) {
@@ -82,18 +82,23 @@ sub MyChild {
     return 1;
 }
 
-# Spawn 10 children, each running a series of exchanges.
+# Spawn children, each running a series of exchanges.
 # Children write results to a shared log file; parent collects them.
+# If fork() fails (e.g., RLIMIT_NPROC on constrained smokers), stop
+# spawning and test only the children we managed to create.
 unlink "log";
 my %childs;
-for ( my $i = 0; $i < 10; $i++ ) {
+my $spawned = 0;
+for ( my $i = 0; $i < $NUM_CHILDREN; $i++ ) {
     my $pid = fork();
     if ( !defined($pid) ) {
-        die "Failed to create new child: $!";
+        diag("fork() failed at child $i: $! — testing with $spawned children");
+        last;
     }
     if ($pid) {
         # Parent
         $childs{$pid} = $i;
+        $spawned++;
     }
     else {
         # Child
@@ -114,6 +119,12 @@ for ( my $i = 0; $i < 10; $i++ ) {
     }
 }
 
+if ( !$spawned ) {
+    plan skip_all => "Cannot fork test children: $!";
+}
+
+plan tests => $spawned;
+
 # Wait for all children to finish
 while ( keys(%childs) > 0 ) {
     my $pid = waitpid( -1, 0 );
@@ -132,7 +143,7 @@ if ( open( my $log_fh, '<', 'log' ) ) {
     close($log_fh);
 }
 
-for ( my $i = 0; $i < 10; $i++ ) {
+for ( my $i = 0; $i < $spawned; $i++ ) {
     ok( $results[$i], "forked child " . ( $i + 1 ) . " exchange (1000 rounds)" );
 }
 
