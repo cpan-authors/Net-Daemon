@@ -36,6 +36,9 @@ use Net::Daemon    ();
 use Symbol         ();
 use File::Basename ();
 
+# Use the same IPv4/IPv6 class as Net::Daemon
+my $INET_CLASS = $Net::Daemon::INET_CLASS || 'IO::Socket::INET';
+
 our $VERSION = '0.52';
 our @ISA     = qw(Net::Daemon);
 
@@ -174,7 +177,7 @@ sub Bind ($) {
             'Listen'    => $self->{'listen'} || 10,
             'Reuse'     => 1
         );
-        $socket = eval { IO::Socket::INET->new(@socket_args) };
+        $socket = eval { $INET_CLASS->new(@socket_args) };
         if ($socket) {
             $port = $socket->sockport();
         }
@@ -182,7 +185,7 @@ sub Bind ($) {
             $port = 30049;
             while ( !$socket && $port++ < 30060 ) {
                 $socket = eval {
-                    IO::Socket::INET->new(
+                    $INET_CLASS->new(
                         @socket_args,
                         'LocalPort' => $port
                     );
