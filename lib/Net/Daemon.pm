@@ -687,8 +687,8 @@ sub Bind ($) {
             # whole group by killing the childs.
             my $childpid;
             $exit = 0;
-            $SIG{'TERM'} = sub { die };
-            $SIG{'INT'}  = sub { die };
+            $SIG{'TERM'} = sub { $exit = 1 };
+            $SIG{'INT'}  = sub { $exit = 1 };
             eval {
                 do {
                     $childpid = wait;
@@ -704,6 +704,12 @@ sub Bind ($) {
             exit(0);
         }
     }
+
+    # Install signal handlers for graceful shutdown.  SIGTERM and SIGINT
+    # set the Done flag so the accept loop exits cleanly, allowing the
+    # "Server terminating" log message to fire and sockets to close.
+    $SIG{'TERM'} = sub { $self->Done(1) };
+    $SIG{'INT'}  = sub { $self->Done(1) };
 
     my $time = $self->{'loop-timeout'} ? ( time() + $self->{'loop-timeout'} ) : 0;
 
@@ -1204,6 +1210,21 @@ should return either FALSE (refuse the client) or TRUE (accept the client).
 If the client is accepted, the B<Run> method is called which does the
 true work. The connection is closed when B<Run> returns and the corresponding
 thread or process exits.
+
+
+=head2 Signal Handling
+
+B<Bind> installs handlers for C<SIGTERM> and C<SIGINT> that trigger a
+graceful shutdown.  When either signal is received, the server sets the
+B<Done> flag so the accept loop exits cleanly, logs a "Server
+terminating" message, and closes the listening socket.
+
+In preforking mode (B<--childs>), the parent process catches the signal,
+terminates the wait loop, and sends C<SIGTERM> to all child processes
+before exiting.
+
+If your subclass needs custom signal handling, override B<Bind> or
+install your own handlers after calling C<SUPER::Bind>.
 
 
 =head2 Error Handling
