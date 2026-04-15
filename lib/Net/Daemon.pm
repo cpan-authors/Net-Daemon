@@ -117,6 +117,10 @@ sub Options ($) {
             'template'    => 'logfile=s',
             'description' => '--logfile <file>        ' . 'Force logging to <file>'
         },
+        'maxclients' => {
+            'template'    => 'maxclients=i',
+            'description' => '--maxclients <num>      ' . 'Maximum concurrent connections in fork mode'
+        },
         'loop-child' => {
             'template'    => 'loop-child',
             'description' => '--loop-child            ' . 'Create a child process for loops'
@@ -567,6 +571,7 @@ sub SigChildHandler {
         return sub {
             while ( ( my $pid = waitpid( -1, POSIX::WNOHANG() ) ) > 0 ) {
                 $$ref = $pid if $ref;
+                $self->{'active_children'}-- if $self->{'active_children'};
             }
         };
     }
@@ -705,6 +710,9 @@ sub Bind ($) {
         }
     }
 
+    $self->{'active_children'} = 0;
+    my $maxclients = $self->{'maxclients'} || 0;
+
     my $time = $self->{'loop-timeout'} ? ( time() + $self->{'loop-timeout'} ) : 0;
 
     my $client;
@@ -741,6 +749,15 @@ sub Bind ($) {
                 }
             }
             else {
+                if ( $maxclients && $self->{'mode'} eq 'fork'
+                    && $self->{'active_children'} >= $maxclients ) {
+                    $self->Error(
+                        "Max clients reached (%d), rejecting connection",
+                        $maxclients
+                    );
+                    $client->close();
+                    next;
+                }
                 if ( $self->{'debug'} ) {
                     my $from =
                       $self->{'proto'} eq 'unix'
@@ -756,6 +773,7 @@ sub Bind ($) {
                 }
                 my $sth = $self->Clone($client);
                 $self->Debug("Child clone: $sth\n");
+                $self->{'active_children'}++ if $self->{'mode'} eq 'fork';
                 $sth->ChildFunc('HandleChild') if $sth;
                 if ( $self->{'mode'} ne 'single' ) {
                     $self->ServClose($client);
@@ -1006,6 +1024,14 @@ fork mode is, that the child processes continue to run after a
 connection has terminated and are able to accept a new connection.
 This is useful for caching inside the childs process (e.g.
 DBI::ProxyServer connect_cached attribute)
+
+=item I<maxclients> (B<--maxclients=num>)
+
+(Fork mode only) Maximum number of concurrent child processes. When the
+limit is reached, new connections are immediately closed with an error
+logged. This prevents resource exhaustion from connection floods.
+
+If not set or set to 0, there is no limit.
 
 =item I<options>
 
