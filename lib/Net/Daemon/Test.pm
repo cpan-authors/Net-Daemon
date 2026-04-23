@@ -170,8 +170,12 @@ sub Bind ($) {
         }
     }
     else {
+        # Default to 127.0.0.1 for test servers. IO::Socket::IP with no
+        # LocalAddr may bind to :: (dual-stack IPv6), which test clients
+        # using IO::Socket::INET to connect to 127.0.0.1 can't reach
+        # on some platforms (notably Windows).
         my @socket_args = (
-            'LocalAddr' => $self->{'localaddr'},
+            'LocalAddr' => $self->{'localaddr'} || '127.0.0.1',
             'LocalPort' => $self->{'localport'},
             'Proto'     => $self->{'proto'} || 'tcp',
             'Listen'    => $self->{'listen'} || 10,
