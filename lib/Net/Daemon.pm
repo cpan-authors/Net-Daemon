@@ -32,6 +32,8 @@ use Net::Daemon::Log ();
 use POSIX            ();
 use File::Spec       ();
 
+our $INET_CLASS = eval { require IO::Socket::IP; 'IO::Socket::IP' } || 'IO::Socket::INET';
+
 our $VERSION = '0.52';
 our @ISA = qw(Net::Daemon::Log);
 
@@ -377,13 +379,37 @@ sub Accept ($) {
             );
         }
         else {
-            ( $name, $aliases, $addrtype, $length, @addrs ) =
-              gethostbyaddr( $socket->peeraddr(), Socket::AF_INET() );
+            my $peerhost = $socket->peerhost();
+            my $ipv4_addr;
+
+            # IO::Socket::IP dual-stack sockets present IPv4 clients as
+            # IPv4-mapped IPv6 addresses (::ffff:x.x.x.x).  Extract the
+            # embedded IPv4 address so gethostbyaddr() and ACL masks work.
+            if ( defined $peerhost && $peerhost =~ /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i ) {
+                $ipv4_addr = Socket::inet_aton($1);
+            }
+            elsif ( defined $peerhost && $peerhost =~ /^\d+\.\d+\.\d+\.\d+$/ ) {
+                $ipv4_addr = $socket->peeraddr();
+            }
+
+            if ($ipv4_addr) {
+                ( $name, $aliases, $addrtype, $length, @addrs ) =
+                  gethostbyaddr( $ipv4_addr, Socket::AF_INET() );
+            }
         }
         my @patterns =
           @addrs
           ? map { Socket::inet_ntoa($_) } @addrs
-          : $socket->peerhost();
+          : ();
+        if ( $self->{'proto'} ne 'unix' ) {
+            # Always include peerhost() so ACL masks can match the raw address
+            my $peerhost = $socket->peerhost();
+            push( @patterns, $peerhost ) if defined $peerhost;
+            # For IPv4-mapped IPv6, also add the bare IPv4 address
+            if ( defined $peerhost && $peerhost =~ /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i ) {
+                push( @patterns, $1 );
+            }
+        }
         push( @patterns, $name ) if ($name);
         push( @patterns, split( / /, $aliases ) ) if $aliases;
 
@@ -598,7 +624,7 @@ sub Bind ($) {
             umask $old_umask;
         }
         else {
-            $self->{'socket'} = IO::Socket::INET->new(
+            $self->{'socket'} = $INET_CLASS->new(
                 'LocalAddr' => $self->{'localaddr'},
                 'LocalPort' => $self->{'localport'},
                 'Proto'     => $self->{'proto'} || 'tcp',
@@ -827,6 +853,26 @@ override those methods that aren't appropriate for you, but typically
 inheriting will safe you a lot of work anyways.
 
 
+=head2 IPv6 Support
+
+When L<IO::Socket::IP> is installed (it is core since Perl 5.20, and
+available on CPAN for earlier versions), the server will automatically
+use it instead of L<IO::Socket::INET>.  This provides transparent
+dual-stack IPv4/IPv6 support: clients can connect over either protocol
+without any configuration change.
+
+To bind to a specific IPv6 address, use the B<--localaddr> option:
+
+  --localaddr ::1         # IPv6 loopback only
+  --localaddr ::          # all IPv6 (and IPv4 on most systems)
+
+If IO::Socket::IP is not available, the server falls back to
+IO::Socket::INET (IPv4 only), preserving backward compatibility.
+
+Existing IPv4 access control masks (the C<clients> configuration)
+continue to work unchanged: IPv4-mapped IPv6 addresses
+(C<::ffff:x.x.x.x>) are automatically normalized for matching.
+
 =head2 Constructors
 
   $server = Net::Daemon->new($attr, $options);
@@ -920,7 +966,8 @@ GID's can be passed as group names or numeric values.
 
 By default a daemon is listening to any IP number that a machine
 has. This attribute allows to restrict the server to the given
-IP number.
+IP number.  Both IPv4 and IPv6 addresses are accepted when
+L<IO::Socket::IP> is available (core since Perl 5.20).
 
 =item I<localpath> (B<--localpath=path>)
 

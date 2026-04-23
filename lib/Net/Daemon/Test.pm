@@ -36,6 +36,9 @@ use Net::Daemon    ();
 use Symbol         ();
 use File::Basename ();
 
+# Use the same IPv4/IPv6 class as Net::Daemon
+my $INET_CLASS = $Net::Daemon::INET_CLASS || 'IO::Socket::INET';
+
 our $VERSION = '0.52';
 our @ISA     = qw(Net::Daemon);
 
@@ -167,14 +170,18 @@ sub Bind ($) {
         }
     }
     else {
+        # Default to 127.0.0.1 for test servers. IO::Socket::IP with no
+        # LocalAddr may bind to :: (dual-stack IPv6), which test clients
+        # using IO::Socket::INET to connect to 127.0.0.1 can't reach
+        # on some platforms (notably Windows).
         my @socket_args = (
-            'LocalAddr' => $self->{'localaddr'},
+            'LocalAddr' => $self->{'localaddr'} || '127.0.0.1',
             'LocalPort' => $self->{'localport'},
             'Proto'     => $self->{'proto'} || 'tcp',
             'Listen'    => $self->{'listen'} || 10,
             'Reuse'     => 1
         );
-        $socket = eval { IO::Socket::INET->new(@socket_args) };
+        $socket = eval { $INET_CLASS->new(@socket_args) };
         if ($socket) {
             $port = $socket->sockport();
         }
@@ -182,7 +189,7 @@ sub Bind ($) {
             $port = 30049;
             while ( !$socket && $port++ < 30060 ) {
                 $socket = eval {
-                    IO::Socket::INET->new(
+                    $INET_CLASS->new(
                         @socket_args,
                         'LocalPort' => $port
                     );
