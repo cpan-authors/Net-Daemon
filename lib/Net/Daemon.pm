@@ -670,7 +670,10 @@ sub Bind ($) {
         my $childpids = $self->{'childpids'} = {};
         for ( my $n = 0; $n < $self->{'childs'}; $n++ ) {
             $pid = fork();
-            die "Cannot fork: $!" unless defined $pid;
+            if ( !defined $pid ) {
+                $self->Error("Cannot fork child %d of %d: %s", $n + 1, $self->{'childs'}, $!);
+                last;
+            }
             if ( !$pid ) {    #Child
                 $self->{'mode'} = 'single';
                 last;
@@ -679,7 +682,14 @@ sub Bind ($) {
             # Parent
             $childpids->{$pid} = 1;
         }
-        if ($pid) {
+        if ( !defined($pid) && !keys %$childpids ) {
+            $self->Fatal("Cannot fork any child processes");
+        }
+        if ( !defined($pid) || $pid ) {
+            my $forked = keys %$childpids;
+            if ( $forked < $self->{'childs'} ) {
+                $self->Error("Only forked %d of %d requested children", $forked, $self->{'childs'});
+            }
 
             # Parent waits for childs in a loop, then exits ...
             # We could also terminate the parent process, but
