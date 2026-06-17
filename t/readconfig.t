@@ -44,7 +44,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( '/nonexistent/path/config.cfg', {}, [] ) };
     ok( $@, 'missing file throws exception' );
-    like( $fatals[0] // '', qr/No such config file/, 'missing file error mentions missing file' );
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/No such config file/, 'missing file error mentions missing file' );
 }
 
 # --- Syntax error in config ---
@@ -54,7 +54,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( $file, {}, [] ) };
     ok( $@, 'syntax error throws exception' );
-    like( $fatals[0] // '', qr/Error while processing|did not return a hash ref/,
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/Error while processing|did not return a hash ref/,
         'syntax error produces relevant Fatal message' );
 }
 
@@ -65,7 +65,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( $file, {}, [] ) };
     ok( $@, 'scalar return throws exception' );
-    like( $fatals[0] // '', qr/did not return a hash ref/, 'scalar return error message' );
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/did not return a hash ref/, 'scalar return error message' );
 }
 
 # --- Returns an array ref ---
@@ -75,7 +75,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( $file, {}, [] ) };
     ok( $@, 'array ref return throws exception' );
-    like( $fatals[0] // '', qr/did not return a hash ref/, 'array ref return error message' );
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/did not return a hash ref/, 'array ref return error message' );
 }
 
 # --- Returns undef ---
@@ -85,7 +85,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( $file, {}, [] ) };
     ok( $@, 'undef return throws exception' );
-    like( $fatals[0] // '', qr/did not return a hash ref/, 'undef return error message' );
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/did not return a hash ref/, 'undef return error message' );
 }
 
 # --- Returns empty string ---
@@ -95,7 +95,7 @@ sub write_config {
     my $daemon = make_daemon();
     eval { $daemon->ReadConfigFile( $file, {}, [] ) };
     ok( $@, 'empty string return throws exception' );
-    like( $fatals[0] // '', qr/did not return a hash ref/, 'empty string return error message' );
+    like( (defined $fatals[0] ? $fatals[0] : ''), qr/did not return a hash ref/, 'empty string return error message' );
 }
 
 # --- Valid config file ---
