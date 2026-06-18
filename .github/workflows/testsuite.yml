@@ -172,7 +172,7 @@ jobs:
         run: |
           cover -delete
           HARNESS_PERL_SWITCHES='-MDevel::Cover=-ignore,^t/' prove -l t/base.t t/clone.t t/config.t t/listen.t t/logfile.t t/mode.t t/privdrop.t
-          cover -report
+          cover
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
