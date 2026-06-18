@@ -14,3 +14,4 @@
 ^MYMETA\.
 ^\.perltidyrc$
 ^CLAUDE\.md$
+^cover_db/
